@@ -10,7 +10,7 @@ from .base import Base
 
 
 class Visualisation(Base):
-    __slots__ = ('y', 'x', 'band_levels_visualisation', 'preset')
+    __slots__ = ('band_levels_visualisation', 'y', 'x')
 
     def __init__(self):
         super().__init__()
@@ -22,7 +22,6 @@ class Visualisation(Base):
         ]
         self.y: int = 11
         self.x: int = 2
-        self.preset = [2, 6, 12, 25, 45, 70]
 
     @staticmethod
     def init_colors() -> None:
@@ -49,17 +48,17 @@ class Visualisation(Base):
             self.init_colors()
 
     def verify_band_level(self, band_level):
-        if band_level >= self.preset[5]:
+        if band_level >= self.bands_levels[5]:
             return 1, 2, 3, 4, 5, 6
-        elif band_level >= self.preset[4]:
+        elif band_level >= self.bands_levels[4]:
             return 0, 2, 3, 4, 5, 6
-        elif band_level >= self.preset[3]:
+        elif band_level >= self.bands_levels[3]:
             return 0, 0, 3, 4, 5, 6
-        elif band_level >= self.preset[2]:
+        elif band_level >= self.bands_levels[2]:
             return 0, 0, 0, 4, 5, 6
-        elif band_level >= self.preset[1]:
+        elif band_level >= self.bands_levels[1]:
             return 0, 0, 0, 0, 5, 6
-        elif band_level > self.preset[0]:
+        elif band_level > self.bands_levels[0]:
             return 0, 0, 0, 0, 0, 6
         return 0, 0, 0, 0, 0, 0
 

@@ -4,17 +4,24 @@ from logging import config, getLogger
 
 
 class Base:
-    __slots__ = ('logger', 'audio_visualizer_config')
+    __slots__ = ('logger', 'preset', 'variables', 'bands', 'bands_levels')
 
     def __init__(self):
         self.logger = getLogger()
-        self.audio_visualizer_config: dict[str, list[list[int]]] = {
+        self.preset: dict[str, list[list[int]]] = {
             "bands": [
                 [20, 80], [80, 160], [160, 320],
                 [320, 640], [640, 1280], [1280, 2560],
                 [2560, 5120], [5120, 10240], [10240, 20000]
-            ]
+            ],
+            "bands_levels": [2, 6, 12, 25, 45, 70]
         }
+        self.variables = self.get_config_data('preset')
+        try:
+            self.bands = self.variables['bands']
+            self.bands_levels = self.variables['bands_levels']
+        except TypeError:
+            print('\nTypeError! Переменные не могут быть инициализированы!')
 
     @staticmethod
     def create_directories() -> None:
@@ -79,8 +86,8 @@ class Base:
         try:
             return self.get_json_data('config_files', config_name)
         except FileNotFoundError:
-            self.save_json_data('config_files', config_name, self.audio_visualizer_config)
-            return self.audio_visualizer_config
+            self.save_json_data('config_files', config_name, self.preset)
+            return self.preset
         except JSONDecodeError:
             print(f'\nJSONDecodeError! Файл «{config_name}.json» поврежден или не является корректным JSON!')
             return None

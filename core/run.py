@@ -1,20 +1,16 @@
 from time import sleep
 from threading import Thread, Lock
 
-from random import uniform
-
-from .visualisation import Visualisation
+from .audio_processor import Analyzer
 
 
-class RunProgram(Visualisation):
-    __slots__ = ('locker', 'running', 'variables', 'bands')
+class RunProgram(Analyzer):
+    __slots__ = ('locker', 'running')
 
     def __init__(self):
         super().__init__()
         self.locker = Lock()
         self.running: bool = True
-        self.variables: dict = self.get_config_data('audio_visualizer_config')
-        self.bands = self.variables['bands']
 
     def wait_for_enter(self, stdscr) -> None:
         stdscr.getch()
@@ -24,7 +20,7 @@ class RunProgram(Visualisation):
         while self.running:
             with self.locker:
                 counter = 0
-                band_levels: list[float] = [uniform(0, 100) for _ in range(len(self.bands))]  # заглушка
+                band_levels: list[float] = self.get_band_levels()
                 for i in range(len(band_levels)):
                     Thread(target=self.safe_wrapper, args=(self.create_band, band_levels[i], self.x + counter)).start()
                     counter += len(band_levels) - 1
