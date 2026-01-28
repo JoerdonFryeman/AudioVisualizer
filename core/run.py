@@ -3,22 +3,18 @@ from threading import Thread, Lock
 
 from random import uniform
 
-from .base import Base
 from .visualisation import Visualisation
 
 
-class RunProgram(Visualisation, Base):
-    __slots__ = ('locker', 'running')
+class RunProgram(Visualisation):
+    __slots__ = ('locker', 'running', 'variables', 'bands')
 
     def __init__(self):
         super().__init__()
         self.locker = Lock()
         self.running: bool = True
-        self.bands = [
-            [20, 80], [80, 160], [160, 320],
-            [320, 640], [640, 1280], [1280, 2560],
-            [2560, 5120], [5120, 10240], [10240, 20000]
-        ]
+        self.variables: dict = self.get_config_data('audio_visualizer_config')
+        self.bands = self.variables['bands']
 
     def wait_for_enter(self, stdscr) -> None:
         stdscr.getch()

@@ -1,7 +1,20 @@
 import os
+from json import load, dump, JSONDecodeError
+from logging import config, getLogger
 
 
 class Base:
+    __slots__ = ('logger', 'audio_visualizer_config')
+
+    def __init__(self):
+        self.logger = getLogger()
+        self.audio_visualizer_config: dict[str, list[list[int]]] = {
+            "bands": [
+                [20, 80], [80, 160], [160, 320],
+                [320, 640], [640, 1280], [1280, 2560],
+                [2560, 5120], [5120, 10240], [10240, 20000]
+            ]
+        }
 
     @staticmethod
     def create_directories() -> None:
@@ -12,3 +25,69 @@ class Base:
                 os.mkdir(directory)
             except FileExistsError:
                 pass
+
+    @staticmethod
+    def get_json_data(directory: str, name: str) -> dict:
+        """
+        Возвращает данные в формате json из указанного файла.
+
+        :param directory: Название каталога.
+        :param name: Имя файла без расширения.
+        :return: Словарь с данными из json файла.
+        """
+        file_path: str = os.path.join(directory, f'{name}.json')
+        try:
+            with open(file_path, encoding='UTF-8') as json_file:
+                data: dict = load(json_file)
+            return data
+        except FileNotFoundError:
+            raise FileNotFoundError(f'Файл не найден: {file_path}')
+        except JSONDecodeError:
+            raise ValueError(f'Ошибка декодирования JSON в файле: {file_path}')
+        except PermissionError:
+            raise PermissionError(f'Нет доступа к файлу: {file_path}')
+        except Exception as e:
+            raise Exception(f'Произошла ошибка: {str(e)}')
+
+    @staticmethod
+    def save_json_data(directory: str, name: str, data: list | dict) -> None:
+        """
+        Сохраняет файл json.
+
+        :param directory: Директория сохраняемого файла.
+        :param name: Имя сохраняемого файла.
+        :param data: Данные сохраняемого файла.
+        """
+        file_path: str = os.path.join(directory, f'{name}.json')
+        try:
+            with open(file_path, 'w', encoding='UTF-8') as json_file:
+                dump(data, json_file, ensure_ascii=False, indent=4)
+        except PermissionError:
+            raise PermissionError(f'Нет доступа для записи в файл: {file_path}')
+        except IOError as e:
+            raise IOError(f'Ошибка записи в файл: {file_path}. Причина: {str(e)}')
+        except Exception as e:
+            raise Exception(f'Произошла ошибка: {str(e)}')
+
+    def get_config_data(self, config_name: str):
+        """
+        Метод пробует прочитать файл конфигурации и, если это не удаётся, перезаписывает его.
+
+        :param config_name: Имя файла конфигурации (без расширения .json).
+        :return dict: Данные конфигурации, загруженные из файла JSON.
+        """
+        try:
+            return self.get_json_data('config_files', config_name)
+        except FileNotFoundError:
+            self.save_json_data('config_files', config_name, self.audio_visualizer_config)
+            return self.audio_visualizer_config
+        except JSONDecodeError:
+            print(f'\nJSONDecodeError! Файл «{config_name}.json» поврежден или не является корректным JSON!')
+            return None
+        except OSError as e:
+            print(f'\nOSError! Не удалось прочитать файл «{config_name}.json» из-за {e}')
+            return None
+
+    def get_logging_data(self) -> None:
+        """Загружает и применяет конфигурацию логирования из JSON-файла."""
+        config.dictConfig(self.get_json_data('config_files/logs', 'logging'))

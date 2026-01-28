@@ -15,7 +15,7 @@ class Visualisation(Base):
     def __init__(self):
         super().__init__()
         self.create_directories()
-        # self.get_logging_data()
+        self.get_logging_data()
         self.band_levels_visualisation: list[tuple[int, None, int]] = [
             (-10, None, 0), (-8, None, 0), (-6, None, 0),
             (-4, None, 0), (-2, None, 0), (0, None, 0)
