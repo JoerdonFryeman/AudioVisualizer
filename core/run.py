@@ -4,10 +4,10 @@ from threading import Thread, Lock
 from random import uniform
 
 from .base import Base
-from .visualizer import Visualizer
+from .visualisation import Visualisation
 
 
-class RunProgram(Visualizer, Base):
+class RunProgram(Visualisation, Base):
     __slots__ = ('locker', 'running')
 
     def __init__(self):

@@ -1,11 +1,11 @@
 from .base import color_pair
 
 
-class Visualizer:
-    __slots__ = ('y', 'x', 'visualizer_band_levels', 'preset')
+class Visualisation:
+    __slots__ = ('y', 'x', 'band_levels_visualisation', 'preset')
 
     def __init__(self):
-        self.visualizer_band_levels: list[tuple[int, None, int]] = [
+        self.band_levels_visualisation: list[tuple[int, None, int]] = [
             (-10, None, 0), (-8, None, 0), (-6, None, 0),
             (-4, None, 0), (-2, None, 0), (0, None, 0)
         ]
@@ -29,7 +29,7 @@ class Visualizer:
         return 0, 0, 0, 0, 0, 0
 
     def create_band(self, stdscr, band_level, x):
-        for i, (off, _, _) in enumerate(self.visualizer_band_levels):
+        for i, (off, _, _) in enumerate(self.band_levels_visualisation):
             color = self.verify_band_level(band_level)[i]
             y = self.y + off
             if color == 0:
