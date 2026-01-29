@@ -4,22 +4,24 @@ from logging import config, getLogger
 
 
 class Base:
-    __slots__ = ('logger', 'preset', 'variables', 'bands', 'bands_levels')
+    __slots__ = ('logger', 'preset', 'variables', 'samples_number', 'bands_levels', 'bands')
 
     def __init__(self):
         self.logger = getLogger()
-        self.preset: dict[str, list[list[int]]] = {
+        self.preset: dict[str, int | list[int] | list[list[int]]] = {
+            "samples_number": 1024,
+            "bands_levels": [2, 6, 12, 25, 45, 70],
             "bands": [
                 [20, 80], [80, 160], [160, 320],
                 [320, 640], [640, 1280], [1280, 2560],
                 [2560, 5120], [5120, 10240], [10240, 20000]
-            ],
-            "bands_levels": [2, 6, 12, 25, 45, 70]
+            ]
         }
         self.variables = self.get_config_data('preset')
         try:
-            self.bands = self.variables['bands']
+            self.samples_number = self.variables['samples_number']
             self.bands_levels = self.variables['bands_levels']
+            self.bands = self.variables['bands']
         except TypeError:
             print('\nTypeError! Переменные не могут быть инициализированы!')
 
