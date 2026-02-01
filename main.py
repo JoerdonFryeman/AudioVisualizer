@@ -5,11 +5,13 @@ run = RunProgram()
 
 def main() -> None:
     try:
-        run.logger.info('The stream has been activated.')  # заглушка
+        run.start_stream()
         run.create_wrapped_threads()
-        run.logger.info('The stream has been deactivated.')  # заглушка
+        run.stop_stream()
     except Exception as e:
-        print(f'The check returned an error: {e} Press Enter to finish.')
+        main_error_message = f'The check returned an error: {e}'
+        run.logger.error(main_error_message)
+        print(main_error_message)
 
 
 if __name__ == '__main__':

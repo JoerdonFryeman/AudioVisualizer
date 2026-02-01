@@ -1,12 +1,45 @@
 import math
+import queue
 import numpy as np
+import sounddevice as sd
 from random import uniform
 
 from .visualisation import Visualisation
 
 
 class AudioCapture(Visualisation):
-    samplerate = 48000.0
+    __slots__ = ('device', 'samplerate', 'channels_number', 'audio_queue', 'maxsize', 'stream', 'all_sets')
+
+    def __init__(self):
+        super().__init__()
+        self.device = 12
+        self.samplerate = sd.query_devices(self.device)['default_samplerate']
+        self.channels_number = 2
+        self.maxsize = 16
+        self.audio_queue = queue.Queue(self.maxsize)
+        self.stream = None
+        self.all_sets = (
+            f'(device: {self.device}, samplerate: {self.samplerate}, '
+            f'channels: {self.channels_number}, blocksize: {self.samples_number})'
+        )
+
+    @staticmethod
+    def _convert_to_mono(buffer: np.ndarray) -> np.ndarray:
+        pass
+
+    def _enqueue_mono_block(self, buffer) -> bool:
+        pass
+
+    def audio_callback(self, block, frames, time_info, status):
+        pass
+
+    def start_stream(self):
+        self.logger.info(f'Audio stream started {self.all_sets}')
+        pass
+
+    def stop_stream(self):
+        self.logger.info(f'Audio stream stopped {self.all_sets}')
+        pass
 
     def grab_samples(self):
         return [uniform(-0.01, 0.01) for _ in range(self.samples_number)]  # заглушка
