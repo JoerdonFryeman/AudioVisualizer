@@ -2,7 +2,6 @@ import math
 import queue
 import numpy as np
 import sounddevice as sd
-from random import uniform
 
 from .visualisation import Visualisation
 
@@ -25,24 +24,99 @@ class AudioCapture(Visualisation):
 
     @staticmethod
     def _convert_to_mono(buffer: np.ndarray) -> np.ndarray:
-        pass
+        """Преобразует входной буфер в 1D моно numpy-массив dtype float32."""
+        mono = np.mean(buffer, axis=1) if buffer.ndim > 1 else buffer
+        return mono.astype(np.float32, copy=False)
 
     def _enqueue_mono_block(self, buffer) -> bool:
-        pass
+        """Помещает моно-блок в очередь; при переполнении удаляет старый элемент и повторяет."""
+        mono_block = self._convert_to_mono(buffer)
+        try:
+            self.audio_queue.put_nowait(mono_block)
+            return True
+        except queue.Full:
+            try:
+                self.audio_queue.get_nowait()
+            except queue.Empty:
+                pass
+            try:
+                self.audio_queue.put_nowait(mono_block)
+                return True
+            except queue.Full:
+                return False
 
-    def audio_callback(self, block, frames, time_info, status):
-        pass
+    def audio_callback(self, block, *args):
+        """Callback аудиопотока: конвертирует блок и ставит в очередь."""
+        self._enqueue_mono_block(block)
 
     def start_stream(self):
-        self.logger.info(f'Audio stream started {self.all_sets}')
-        pass
+        """Создаёт и запускает входной аудиопоток."""
+        if getattr(self.stream, "active", False):
+            self.logger.info(f'start_stream called but stream already active device: {self.device}')
+            return
+        try:
+            self.stream = sd.InputStream(
+                samplerate=self.samplerate,
+                blocksize=self.samples_number,
+                device=self.device,
+                channels=self.channels_number,
+                callback=self.audio_callback,
+            )
+            self.stream.start()
+            self.logger.info(f'Audio stream started. {self.all_sets}')
+        except Exception:
+            self.logger.exception(f'Failed to start audio stream device: {self.device}')
+            try:
+                if self.stream is not None:
+                    self.stream.close()
+            except Exception:
+                pass
+            finally:
+                self.stream = None
+            raise
 
     def stop_stream(self):
-        self.logger.info(f'Audio stream stopped {self.all_sets}')
-        pass
+        """Останавливает и закрывает аудиопоток, гарантирует сброс атрибута stream."""
+        if self.stream is None:
+            self.logger.info(f'stop_stream called but no stream present device: {self.device}')
+            return
+        try:
+            if getattr(self.stream, "active", False):
+                try:
+                    self.stream.stop()
+                except Exception:
+                    self.logger.exception(f'Error stopping stream device: {self.device}')
+            try:
+                self.stream.close()
+            except Exception:
+                pass
+            self.logger.info(f'Audio stream stopped. {self.all_sets}')
+        finally:
+            self.stream = None
 
     def grab_samples(self):
-        return [uniform(-0.01, 0.01) for _ in range(self.samples_number)]  # заглушка
+        """Собирает все доступные блоки из очереди и возвращает окно фиксированной длины."""
+        blocks = []
+        while True:
+            try:
+                blocks.append(self.audio_queue.get_nowait())
+            except queue.Empty:
+                break
+
+        if not blocks:
+            return [0.0] * self.samples_number
+
+        arr = np.concatenate(blocks) if len(blocks) > 1 else blocks[0]
+        arr = arr.astype(np.float32, copy=False)
+
+        total = arr.size
+        if total >= self.samples_number:
+            window = arr[-self.samples_number:]
+        else:
+            pad = np.zeros(self.samples_number - total, dtype=np.float32)
+            window = np.concatenate((pad, arr))
+
+        return window.tolist()
 
 
 class Analyzer(AudioCapture):
