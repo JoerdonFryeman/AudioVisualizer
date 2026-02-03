@@ -6,19 +6,27 @@ import sounddevice as sd
 from .visualisation import Visualisation
 
 
-class AudioCapture(Visualisation):
-    __slots__ = ('device', 'samplerate', 'channels_number', 'audio_queue', 'maxsize', 'stream', 'all_sets')
+class DeviceSelection(Visualisation):
+
+    def verify_device(self):
+        if self.device is None:
+            return 12
+        return self.device
+
+
+class AudioCapture(DeviceSelection):
+    __slots__ = ('selected_device', 'samplerate', 'channels_number', 'audio_queue', 'maxsize', 'stream', 'all_sets')
 
     def __init__(self):
         super().__init__()
-        self.device = 12
-        self.samplerate = sd.query_devices(self.device)['default_samplerate']
+        self.selected_device = self.verify_device()
+        self.samplerate = sd.query_devices(self.selected_device)['default_samplerate']
         self.channels_number = 2
         self.maxsize = 16
         self.audio_queue = queue.Queue(self.maxsize)
         self.stream = None
         self.all_sets = (
-            f'(device: {self.device}, samplerate: {self.samplerate}, '
+            f'(selected device: {self.selected_device}, samplerate: {self.samplerate}, '
             f'channels: {self.channels_number}, blocksize: {self.samples_number})'
         )
 
@@ -52,20 +60,20 @@ class AudioCapture(Visualisation):
     def start_stream(self):
         """Создаёт и запускает входной аудиопоток."""
         if getattr(self.stream, "active", False):
-            self.logger.info(f'start_stream called but stream already active device: {self.device}')
+            self.logger.info(f'start_stream called but stream already active selected device: {self.selected_device}')
             return
         try:
             self.stream = sd.InputStream(
                 samplerate=self.samplerate,
                 blocksize=self.samples_number,
-                device=self.device,
+                device=self.selected_device,
                 channels=self.channels_number,
                 callback=self.audio_callback,
             )
             self.stream.start()
             self.logger.info(f'Audio stream started. {self.all_sets}')
         except Exception:
-            self.logger.exception(f'Failed to start audio stream device: {self.device}')
+            self.logger.exception(f'Failed to start audio stream selected device: {self.selected_device}')
             try:
                 if self.stream is not None:
                     self.stream.close()
@@ -78,14 +86,14 @@ class AudioCapture(Visualisation):
     def stop_stream(self):
         """Останавливает и закрывает аудиопоток, гарантирует сброс атрибута stream."""
         if self.stream is None:
-            self.logger.info(f'stop_stream called but no stream present device: {self.device}')
+            self.logger.info(f'stop_stream called but no stream present selected device: {self.selected_device}')
             return
         try:
             if getattr(self.stream, "active", False):
                 try:
                     self.stream.stop()
                 except Exception:
-                    self.logger.exception(f'Error stopping stream device: {self.device}')
+                    self.logger.exception(f'Error stopping stream selected device: {self.selected_device}')
             try:
                 self.stream.close()
             except Exception:

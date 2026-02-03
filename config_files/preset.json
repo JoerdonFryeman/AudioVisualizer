@@ -1,4 +1,5 @@
 {
+    "device": null,
     "samples_number": 1024,
     "bands_levels": [
         2,
