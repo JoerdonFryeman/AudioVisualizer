@@ -1,6 +1,8 @@
 {
     "device": null,
+    "channels_number": 2,
     "samples_number": 1024,
+    "maxsize": 16,
     "bands_levels": [
         2,
         6,

@@ -5,6 +5,7 @@ run = RunProgram()
 
 def main() -> None:
     try:
+        run.save_json_data('config_files', 'device_list', run.device_list)
         run.start_stream()
         run.create_wrapped_threads()
         run.stop_stream()

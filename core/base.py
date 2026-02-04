@@ -4,13 +4,18 @@ from logging import config, getLogger
 
 
 class Base:
-    __slots__ = ('logger', 'preset', 'variables', 'device', 'samples_number', 'bands_levels', 'bands')
+    __slots__ = (
+        'logger', 'preset', 'variables', 'device', 'channels_number',
+        'samples_number', 'maxsize', 'bands_levels', 'bands'
+    )
 
     def __init__(self):
         self.logger = getLogger()
         self.preset: dict[str, int | list[int] | list[list[int]]] = {
             "device": None,
+            "channels_number": 2,
             "samples_number": 1024,
+            "maxsize": 16,
             "bands_levels": [2, 6, 12, 25, 45, 70],
             "bands": [
                 [20, 80], [80, 160], [160, 320],
@@ -21,7 +26,9 @@ class Base:
         self.variables = self.get_config_data('preset')
         try:
             self.device = self.variables['device']
+            self.channels_number = self.variables['channels_number']
             self.samples_number = self.variables['samples_number']
+            self.maxsize = self.variables['maxsize']
             self.bands_levels = self.variables['bands_levels']
             self.bands = self.variables['bands']
         except TypeError:

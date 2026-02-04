@@ -15,19 +15,18 @@ class DeviceSelection(Visualisation):
 
 
 class AudioCapture(DeviceSelection):
-    __slots__ = ('selected_device', 'samplerate', 'channels_number', 'audio_queue', 'maxsize', 'stream', 'all_sets')
+    __slots__ = ('selected_device', 'device_list', 'samplerate', 'audio_queue', 'stream', 'all_sets')
 
     def __init__(self):
         super().__init__()
         self.selected_device = self.verify_device()
-        self.samplerate = sd.query_devices(self.selected_device)['default_samplerate']
-        self.channels_number = 2
-        self.maxsize = 16
+        self.device_list = sd.query_devices()
+        self.samplerate = int(self.device_list[self.selected_device].get("default_samplerate", 48000))
         self.audio_queue = queue.Queue(self.maxsize)
         self.stream = None
         self.all_sets = (
             f'(selected device: {self.selected_device}, samplerate: {self.samplerate}, '
-            f'channels: {self.channels_number}, blocksize: {self.samples_number})'
+            f'channels: {self.channels_number}, blocksize: {self.samples_number}, maxsize: {self.maxsize})'
         )
 
     @staticmethod
@@ -53,7 +52,7 @@ class AudioCapture(DeviceSelection):
             except queue.Full:
                 return False
 
-    def audio_callback(self, block, *args):
+    def _audio_callback(self, block, *args):
         """Callback аудиопотока: конвертирует блок и ставит в очередь."""
         self._enqueue_mono_block(block)
 
@@ -68,7 +67,7 @@ class AudioCapture(DeviceSelection):
                 blocksize=self.samples_number,
                 device=self.selected_device,
                 channels=self.channels_number,
-                callback=self.audio_callback,
+                callback=self._audio_callback,
             )
             self.stream.start()
             self.logger.info(f'Audio stream started. {self.all_sets}')
