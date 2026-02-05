@@ -1,3 +1,65 @@
 # ЭЛЕКТРОНИКА 54 (AudioVisualizer)
 
 A simple console audio visualization.
+
+## Project structure
+
+- `main.py`: The main module to run the program.
+- `core/run.py`: The main loop module.
+- `core/audio_processor`: Audio processor module.
+- `core/visualisation`: Visualisation module.
+- `core/base`: Base module for all modules.
+- `config_files/preset.json`: Preset file.
+
+## Requirements
+
+- Python 3.13
+- sounddevice 0.5.5
+- numpy 2.4.2
+- The application was developed for Arch Linux with the KDE Plasma desktop environment, but should work in other distributions.
+
+## Installation
+
+Download the project
+
+``` console
+git clone https://github.com/JoerdonFryeman/AudioVisualizer
+cd AudioVisualizer
+```
+
+### For Linux
+
+Create and activate a virtual environment:
+
+``` console
+python -m venv venv && source venv/bin/activate
+```
+
+Install the requirements and run the script in your console:
+
+``` console
+pip install --upgrade pip && pip install -r requirements.txt
+python main.py
+```
+
+## Stop
+
+Just press Enter or try any other key.
+
+## Settings
+
+Some program settings can be specified in the preset.json file.
+
+- You can change the number of your audio device.
+- Each time it is launched, the application creates a config_files/device_list.json file containing the current audio devices.
+- Change the channels_number, samples_number, maxsize, bands_levels or the bands values.
+
+The default settings can be restored by deleting the preset.json file and restarting the program.
+
+## License
+
+This project is being developed under the MIT license.
+
+## Support with Bitcoin
+
+bc1qewfgtrrg2gqgtvzl5d2pr9pte685pp5n3g6scy
