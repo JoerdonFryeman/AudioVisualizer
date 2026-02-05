@@ -6,21 +6,14 @@ import sounddevice as sd
 from .visualisation import Visualisation
 
 
-class DeviceSelection(Visualisation):
-
-    def verify_device(self):
-        if self.device is None:
-            return 12
-        return self.device
-
-
-class AudioCapture(DeviceSelection):
-    __slots__ = ('selected_device', 'device_list', 'samplerate', 'audio_queue', 'stream', 'all_sets')
+class AudioCapture(Visualisation):
+    __slots__ = ('device_list', 'get_device', 'selected_device', 'samplerate', 'audio_queue', 'stream', 'all_sets')
 
     def __init__(self):
         super().__init__()
-        self.selected_device = self.verify_device()
         self.device_list = sd.query_devices()
+        self.get_device = lambda: self.device_list[-1]['index'] if self.device is None else self.device
+        self.selected_device = self.get_device()
         self.samplerate = int(self.device_list[self.selected_device].get("default_samplerate", 48000))
         self.audio_queue = queue.Queue(self.maxsize)
         self.stream = None
