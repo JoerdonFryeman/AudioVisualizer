@@ -2,18 +2,84 @@ import math
 import queue
 import numpy as np
 import sounddevice as sd
+from pulsectl import Pulse
 
 from .visualisation import Visualisation
 
 
-class AudioCapture(Visualisation):
-    __slots__ = ('device_list', 'get_device', 'selected_device', 'samplerate', 'audio_queue', 'stream', 'all_sets')
+class DeviceSelection(Visualisation):
+    __slots__ = ('device_list',)
 
     def __init__(self):
         super().__init__()
-        self.device_list = sd.query_devices()
-        self.get_device = lambda: self.device_list[-1]['index'] if self.device is None else self.device
-        self.selected_device = self.get_device()
+        try:
+            self.device_list = sd.query_devices()
+        except Exception as e:
+            self.logger.debug('Failed to query audio devices: %s', e)
+
+    def get_device_name(self) -> str | None:
+        """Возвращает имя системного устройства вывода (Linux: PulseAudio) или None."""
+        system = self.verify_os()
+
+        if system is None:
+            self.logger.debug('Unknown platform.system() value: %s', system)
+            return None
+
+        if system == 'Linux':
+            try:
+                with Pulse('get-default-output') as pulse:
+                    default = pulse.server_info().default_sink_name
+                    if not default:
+                        return None
+                    try:
+                        sink = pulse.get_sink_by_name(default)
+                    except Exception:
+                        sink = None
+                    return (sink.description or sink.name) if sink else default
+            except Exception as e:
+                self.logger.debug('Failed to get default PulseAudio sink: %s', e)
+                return None
+
+        # Windows handling to be implemented later
+        return None
+
+    def verify_device(self):
+        """Проверяет и возвращает индекс выбранного устройства, с откатом к последнему выходному."""
+        if self.device is not None:
+            return self.device
+
+        target = self.get_device_name()
+        if not target:
+            self.logger.info('No preferred device name obtained; falling back to last output-capable device')
+            outputs = [d for d in self.device_list if d.get('max_output_channels', 0) > 0]
+            return outputs[-1].get('index') if outputs else None
+
+        target = str(target).lower()
+        for d in self.device_list:
+            name = str(d.get('name', '')).lower()
+            if target == name or target in name:
+                index = d.get('index')
+                self.logger.info('name: "%s", index: %s', name, index)
+                return index
+
+        self.logger.info('Preferred device not found; falling back to last output-capable device')
+        outputs = [d for d in self.device_list if d.get('max_output_channels', 0) > 0]
+        return outputs[-1].get('index') if outputs else None
+
+    def verify_selected_device(self) -> int:
+        """Возвращает индекс выбранного устройства или возбуждает RuntimeError, если не найден."""
+        device = self.verify_device()
+        if device is None:
+            raise RuntimeError('Preferred device not found — please specify device index manually.')
+        return device
+
+
+class AudioCapture(DeviceSelection):
+    __slots__ = ('selected_device', 'samplerate', 'audio_queue', 'stream', 'all_sets')
+
+    def __init__(self):
+        super().__init__()
+        self.selected_device = self.verify_selected_device()
         self.samplerate = int(self.device_list[self.selected_device].get("default_samplerate", 48000))
         self.audio_queue = queue.Queue(self.maxsize)
         self.stream = None

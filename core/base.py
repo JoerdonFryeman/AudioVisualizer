@@ -1,4 +1,5 @@
 import os
+import platform
 from json import load, dump, JSONDecodeError
 from logging import config, getLogger
 
@@ -43,6 +44,21 @@ class Base:
                 os.mkdir(directory)
             except FileExistsError:
                 pass
+
+    @staticmethod
+    def verify_os() -> str | None:
+        """
+        Метод проверяет на какой ОС запускается программа.
+        :return: Возвращает текущую ОС: «Linux», «macOS», «Windows» или None.
+        """
+        system = platform.system()
+        if system == 'Linux':
+            return 'Linux'
+        if system == 'Darwin':
+            return 'macOS'
+        if system == 'Windows':
+            return 'Windows'
+        return None
 
     @staticmethod
     def get_json_data(directory: str, name: str) -> dict:
