@@ -4,10 +4,10 @@ import numpy as np
 import sounddevice as sd
 from pulsectl import Pulse
 
-from .visualisation import Visualisation
+from .band_levels import BandLevels
 
 
-class DeviceSelection(Visualisation):
+class DeviceSelection(BandLevels):
     __slots__ = ('device_list',)
 
     def __init__(self):
@@ -18,7 +18,7 @@ class DeviceSelection(Visualisation):
             self.logger.debug('Failed to query audio devices: %s', e)
 
     def get_device_name(self) -> str | None:
-        """Возвращает имя системного устройства вывода (Linux: PulseAudio) или None."""
+        """Возвращает имя системного устройства вывода или None."""
         system = self.verify_os()
 
         if system is None:
@@ -34,32 +34,39 @@ class DeviceSelection(Visualisation):
                     try:
                         sink = pulse.get_sink_by_name(default)
                     except Exception:
+                        self.logger.exception('Failed to set sink; setting sink=None')
                         sink = None
                     return (sink.description or sink.name) if sink else default
             except Exception as e:
-                self.logger.debug('Failed to get default PulseAudio sink: %s', e)
+                self.logger.exception('Failed to get default PulseAudio sink: %s', e)
                 return None
 
-        # Windows handling to be implemented later
         return None
 
-    def verify_device(self):
+    def verify_device(self) -> int | None:
         """Проверяет и возвращает индекс выбранного устройства, с откатом к последнему выходному."""
         if self.device is not None:
             return self.device
 
         target = self.get_device_name()
+
         if not target:
             self.logger.info('No preferred device name obtained; falling back to last output-capable device')
             outputs = [d for d in self.device_list if d.get('max_output_channels', 0) > 0]
             return outputs[-1].get('index') if outputs else None
 
         target = str(target).lower()
+
         for d in self.device_list:
             name = str(d.get('name', '')).lower()
             if target == name or target in name:
                 index = d.get('index')
-                self.logger.info('name: "%s", index: %s', name, index)
+                self.logger.info(
+                    '| ЭЛЕКТРОНИКА 54 | AudioVisualizer (version 1.0.0) | '
+                    'https://github.com/JoerdonFryeman/AudioVisualizer | '
+                    'MIT License, (c) 2026 JoerdonFryeman |'
+                )
+                self.logger.info('Selected device: %s, index: %s', name, index)
                 return index
 
         self.logger.info('Preferred device not found; falling back to last output-capable device')
@@ -75,7 +82,7 @@ class DeviceSelection(Visualisation):
 
 
 class AudioCapture(DeviceSelection):
-    __slots__ = ('selected_device', 'samplerate', 'audio_queue', 'stream', 'all_sets')
+    __slots__ = ('selected_device', 'samplerate', 'audio_queue', 'stream')
 
     def __init__(self):
         super().__init__()
@@ -83,10 +90,6 @@ class AudioCapture(DeviceSelection):
         self.samplerate = int(self.device_list[self.selected_device].get("default_samplerate", 48000))
         self.audio_queue = queue.Queue(self.maxsize)
         self.stream = None
-        self.all_sets = (
-            f'(selected device: {self.selected_device}, samplerate: {self.samplerate}, '
-            f'channels: {self.channels_number}, blocksize: {self.samples_number}, maxsize: {self.maxsize})'
-        )
 
     @staticmethod
     def _convert_to_mono(buffer: np.ndarray) -> np.ndarray:
@@ -111,15 +114,15 @@ class AudioCapture(DeviceSelection):
             except queue.Full:
                 return False
 
-    def _audio_callback(self, block, *args):
+    def _audio_callback(self, block, *args) -> None:
         """Callback аудиопотока: конвертирует блок и ставит в очередь."""
         self._enqueue_mono_block(block)
 
-    def start_stream(self):
+    def start_stream(self) -> None:
         """Создаёт и запускает входной аудиопоток."""
         if getattr(self.stream, "active", False):
-            self.logger.info(f'start_stream called but stream already active selected device: {self.selected_device}')
-            return
+            self.logger.info('start_stream called but stream already active selected device: %s', self.selected_device)
+            return None
         try:
             self.stream = sd.InputStream(
                 samplerate=self.samplerate,
@@ -129,14 +132,20 @@ class AudioCapture(DeviceSelection):
                 callback=self._audio_callback,
             )
             self.stream.start()
-            self.logger.info(f'Audio stream started. {self.all_sets}')
+            self.logger.info(
+                'Samplerate: %s, channels: %s, blocksize: %s, maxsize: %s',
+                self.samplerate, self.channels_number, self.samples_number, self.maxsize
+            )
+            self.logger.info('Audio stream started.')
         except Exception:
-            self.logger.exception(f'Failed to start audio stream selected device: {self.selected_device}')
+            self.logger.exception('Failed to start audio stream selected device: %s', self.selected_device)
             try:
                 if self.stream is not None:
                     self.stream.close()
             except Exception:
-                pass
+                self.logger.exception(
+                    'Failed to close stream after start failure selected device: %s', self.selected_device
+                )
             finally:
                 self.stream = None
             raise
@@ -144,23 +153,23 @@ class AudioCapture(DeviceSelection):
     def stop_stream(self):
         """Останавливает и закрывает аудиопоток, гарантирует сброс атрибута stream."""
         if self.stream is None:
-            self.logger.info(f'stop_stream called but no stream present selected device: {self.selected_device}')
+            self.logger.info('stop_stream called but no stream present selected device: %s', self.selected_device)
             return
         try:
             if getattr(self.stream, "active", False):
                 try:
                     self.stream.stop()
                 except Exception:
-                    self.logger.exception(f'Error stopping stream selected device: {self.selected_device}')
+                    self.logger.exception('Error stopping stream selected device: %s', self.selected_device)
             try:
                 self.stream.close()
             except Exception:
-                pass
-            self.logger.info(f'Audio stream stopped. {self.all_sets}')
+                self.logger.exception('Error closing stream selected device: %s', self.selected_device)
+            self.logger.info('Audio stream stopped.')
         finally:
             self.stream = None
 
-    def grab_samples(self):
+    def grab_samples(self) -> list[float]:
         """Собирает все доступные блоки из очереди и возвращает окно фиксированной длины."""
         blocks = []
         while True:
@@ -170,6 +179,9 @@ class AudioCapture(DeviceSelection):
                 break
 
         if not blocks:
+            self.logger.debug(
+                'No audio blocks in queue; returning zero-filled window of length %s', self.samples_number
+            )
             return [0.0] * self.samples_number
 
         arr = np.concatenate(blocks) if len(blocks) > 1 else blocks[0]
@@ -188,7 +200,7 @@ class AudioCapture(DeviceSelection):
 class Analyzer(AudioCapture):
 
     @staticmethod
-    def get_window_vector(samples_number: int, window_type: str = "hann"):
+    def get_window_vector(samples_number: int, window_type: str = "hann") -> list[float]:
         """Возвращает вектор коэффициентов оконной функции заданного типа и длины samples_number."""
         if samples_number <= 0:
             return []
@@ -213,7 +225,7 @@ class Analyzer(AudioCapture):
         x = (db - min_db) / (-min_db)
         return 100.0 * (x ** gamma)
 
-    def apply_window_vector(self, signal, window_type: str = "hann"):
+    def apply_window_vector(self, signal, window_type: str = "hann") -> np.ndarray:
         """Возвращает новый массив, полученный поэлементным умножением входного сигнала на вектор окна указанного типа."""
         x = np.asarray(signal, dtype=float)
         x_size = x.size

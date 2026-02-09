@@ -47,11 +47,8 @@ class Base:
 
     @staticmethod
     def verify_os() -> str | None:
-        """
-        Метод проверяет на какой ОС запускается программа.
-        :return: Возвращает текущую ОС: «Linux», «macOS», «Windows» или None.
-        """
-        system = platform.system()
+        """Метод проверяет на какой ОС запускается программа."""
+        system: str = platform.system()
         if system == 'Linux':
             return 'Linux'
         if system == 'Darwin':
@@ -62,13 +59,7 @@ class Base:
 
     @staticmethod
     def get_json_data(directory: str, name: str) -> dict:
-        """
-        Возвращает данные в формате json из указанного файла.
-
-        :param directory: Название каталога.
-        :param name: Имя файла без расширения.
-        :return: Словарь с данными из json файла.
-        """
+        """Возвращает данные в формате json из указанного файла."""
         file_path: str = os.path.join(directory, f'{name}.json')
         try:
             with open(file_path, encoding='UTF-8') as json_file:
@@ -85,13 +76,7 @@ class Base:
 
     @staticmethod
     def save_json_data(directory: str, name: str, data: list | dict) -> None:
-        """
-        Сохраняет файл json.
-
-        :param directory: Директория сохраняемого файла.
-        :param name: Имя сохраняемого файла.
-        :param data: Данные сохраняемого файла.
-        """
+        """Сохраняет файл json."""
         file_path: str = os.path.join(directory, f'{name}.json')
         try:
             with open(file_path, 'w', encoding='UTF-8') as json_file:
@@ -104,12 +89,7 @@ class Base:
             raise Exception(f'Произошла ошибка: {str(e)}')
 
     def get_config_data(self, config_name: str):
-        """
-        Метод пробует прочитать файл конфигурации и, если это не удаётся, перезаписывает его.
-
-        :param config_name: Имя файла конфигурации (без расширения .json).
-        :return dict: Данные конфигурации, загруженные из файла JSON.
-        """
+        """Метод пробует прочитать файл конфигурации и, если это не удаётся, перезаписывает его."""
         try:
             return self.get_json_data('config_files', config_name)
         except FileNotFoundError:
