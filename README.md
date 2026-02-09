@@ -2,6 +2,8 @@
 
 A simple console audio visualization.
 
+<img width="621" height="274" alt="AudioVisualizer" src="https://github.com/user-attachments/assets/49ff0c28-4613-49e1-bd30-38e2365480e8" />
+
 ## Project structure
 
 - `main.py`: The main module to run the program.
