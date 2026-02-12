@@ -61,11 +61,6 @@ class DeviceSelection(BandLevels):
             name = str(d.get('name', '')).lower()
             if target == name or target in name:
                 index = d.get('index')
-                self.logger.info(
-                    '| ЭЛЕКТРОНИКА 54 | AudioVisualizer (version 1.0.0) | '
-                    'https://github.com/JoerdonFryeman/AudioVisualizer | '
-                    'MIT License, (c) 2026 JoerdonFryeman |'
-                )
                 self.logger.info('Selected device: %s, index: %s', name, index)
                 return index
 

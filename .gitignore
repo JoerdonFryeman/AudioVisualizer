@@ -13,3 +13,6 @@ venv
 .idea/
 *.iml
 *.iws
+
+# logs
+config_files/logs/data.log

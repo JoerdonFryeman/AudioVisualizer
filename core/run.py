@@ -10,8 +10,8 @@ class RunProgram(Analyzer):
     def __init__(self):
         super().__init__()
         self.locker = Lock()
-        self.running: bool = True
-        self.fps: int = 10
+        self.running = True
+        self.fps = 10
 
     def build_app(self, stdscr) -> None:
         """Создаёт потоки для каждого уровня полосы."""

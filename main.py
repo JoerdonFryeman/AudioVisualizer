@@ -4,10 +4,12 @@ run = RunProgram()
 
 
 def main() -> None:
+    """Запускающая все процессы главная функция."""
     try:
         run.save_json_data('config_files', 'device_list', run.device_list)
         run.create_directories()
         run.get_logging_data()
+        run.log_app_release('AudioVisualizer', '1.0.0', 2026)
         run.start_stream()
         run.create_wrapped_threads()
         run.stop_stream()

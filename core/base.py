@@ -12,7 +12,7 @@ class Base:
 
     def __init__(self):
         self.logger = getLogger()
-        self.preset: dict[str, int | list[int] | list[list[int]]] = {
+        self.preset = {
             "device": None,
             "channels_number": 2,
             "samples_number": 1024,
@@ -38,7 +38,7 @@ class Base:
     @staticmethod
     def create_directories() -> None:
         """Создаёт каталоги, игнорируя уже существующие."""
-        directories: tuple[str, str] = ('config_files', 'icons')
+        directories: tuple[str, str, str] = ('config_files', 'config_files/logs', 'icons')
         for directory in directories:
             try:
                 os.mkdir(directory)
@@ -105,3 +105,12 @@ class Base:
     def get_logging_data(self) -> None:
         """Загружает и применяет конфигурацию логирования из JSON-файла."""
         config.dictConfig(self.get_json_data('config_files/logs', 'logging'))
+
+    def log_app_release(self, name: str, version: str, year: int) -> None:
+        """Логирует заголовок приложения в один info-вызов."""
+        self.logger.info(
+            '| ЭЛЕКТРОНИКА 54 | %s (version %s) | '
+            'https://github.com/JoerdonFryeman/AudioVisualizer | '
+            'MIT License, (c) %d Joerdon Fryeman |',
+            name, version, year
+        )

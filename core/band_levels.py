@@ -6,12 +6,12 @@ class BandLevels(Visualisation):
 
     def __init__(self):
         super().__init__()
-        self.band_levels_visualisation: list[tuple[int, None, int]] = [
+        self.band_levels_visualisation = [
             (-10, None, 0), (-8, None, 0), (-6, None, 0),
             (-4, None, 0), (-2, None, 0), (0, None, 0)
         ]
-        self.y: int = 11
-        self.x: int = 2
+        self.y = 11
+        self.x = 2
 
     def verify_band_level(self, band_level) -> tuple[int, int, int, int, int, int]:
         """Возвращает кортеж из 6 целых чисел, представляющих уровни для 6 полос."""
