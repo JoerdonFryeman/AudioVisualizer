@@ -4,6 +4,14 @@ A simple console audio visualization.
 
 <img width="621" height="274" alt="AudioVisualizer" src="https://github.com/user-attachments/assets/49ff0c28-4613-49e1-bd30-38e2365480e8" />
 
+## Startup
+Download [latest release](https://github.com/JoerdonFryeman/AudioVisualizer/releases/tag/AudioVisualizer_v1.0.0).
+
+In Linux, run ```AudioVisualizer_v1.0.0.app``` in the terminal or with the command:
+```console
+cd /home/your_directories.../AudioVisualizer_v1.0.0/Linux/ && ./AudioVisualizer_v1.0.0.app
+```
+
 ## Project structure
 
 - `main.py`: The main module to run the program.
