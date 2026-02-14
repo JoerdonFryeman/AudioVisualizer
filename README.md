@@ -7,25 +7,17 @@ A simple console audio visualization.
 ## Startup
 Download [latest release](https://github.com/JoerdonFryeman/AudioVisualizer/releases/tag/AudioVisualizer_v1.0.0).
 
-In Linux, run ```AudioVisualizer_v1.0.0.app``` in the terminal or with the command:
+In Linux, run ```AudioVisualizer_v1.0.0.app``` in the terminal with the command:
 ```console
 cd /home/your_directories.../AudioVisualizer_v1.0.0/Linux/ && ./AudioVisualizer_v1.0.0.app
 ```
 
-## Project structure
-
-- `main.py`: The main module to run the program.
-- `core/run.py`: The main loop module.
-- `core/audio_processor`: Audio processor module.
-- `core/visualisation`: Visualisation module.
-- `core/base`: Base module for all modules.
-- `config_files/preset.json`: Preset file.
-
 ## Requirements
 
-- Python 3.13
-- sounddevice 0.5.5
-- numpy 2.4.2
+- Python: >= 3.14
+- numpy: >= 2.4.2
+- sounddevice: >= 0.5.5
+- pulsectl: >= 24.12.0
 - The application was developed for Arch Linux with the KDE Plasma desktop environment, but should work in other distributions.
 
 ## Installation
