@@ -16,7 +16,7 @@ class RunProgram(Analyzer):
     def build_app(self, stdscr) -> None:
         """Создаёт потоки для каждого уровня полосы."""
         with self.locker:
-            counter = 0
+            counter: int = 0
             band_levels: list[float] = self.get_band_levels()
             for i in range(len(band_levels)):
                 Thread(target=self.safe_wrapper, args=(self.create_band, band_levels[i], self.x + counter)).start()

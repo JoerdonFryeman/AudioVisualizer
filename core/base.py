@@ -110,7 +110,7 @@ class Base:
         """Логирует заголовок приложения в один info-вызов."""
         self.logger.info(
             '| ЭЛЕКТРОНИКА 54 | %s (version %s) | '
-            'https://github.com/JoerdonFryeman/AudioVisualizer | '
+            'https://github.com/JoerdonFryeman/%s | '
             'MIT License, (c) %d Joerdon Fryeman |',
-            name, version, year
+            name, version, name, year
         )

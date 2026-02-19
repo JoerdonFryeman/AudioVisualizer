@@ -17,9 +17,9 @@ class DeviceSelection(BandLevels):
         except Exception as e:
             self.logger.debug('Failed to query audio devices: %s', e)
 
-    def get_device_name(self) -> str | None:
+    def _get_device_name(self) -> str | None:
         """Возвращает имя системного устройства вывода или None."""
-        system = self.verify_os()
+        system: str | None = self.verify_os()
 
         if system is None:
             self.logger.debug('Unknown platform.system() value: %s', system)
@@ -36,11 +36,21 @@ class DeviceSelection(BandLevels):
                     except Exception:
                         self.logger.exception('Failed to set sink; setting sink=None')
                         sink = None
-                    return (sink.description or sink.name) if sink else default
+                    if sink:
+                        return sink.description or sink.name
+                    return default
             except Exception as e:
                 self.logger.exception('Failed to get default PulseAudio sink: %s', e)
                 return None
 
+        return None
+
+    def _get_outputs(self, log: str) -> int | None:
+        """Пытается вернуть последний индекс списка звуковых-устройств"""
+        self.logger.info(log)
+        outputs = [d for d in self.device_list if d.get('max_output_channels', 0) > 0]
+        if outputs:
+            return outputs[-1].get('index')
         return None
 
     def verify_device(self) -> int | None:
@@ -48,29 +58,25 @@ class DeviceSelection(BandLevels):
         if self.device is not None:
             return self.device
 
-        target = self.get_device_name()
+        target: str | None = self._get_device_name()
 
         if not target:
-            self.logger.info('No preferred device name obtained; falling back to last output-capable device')
-            outputs = [d for d in self.device_list if d.get('max_output_channels', 0) > 0]
-            return outputs[-1].get('index') if outputs else None
+            return self._get_outputs('No preferred device name obtained; falling back to last output-capable device')
 
-        target = str(target).lower()
+        target_lower: str = str(target).lower().strip()
 
         for d in self.device_list:
-            name = str(d.get('name', '')).lower()
-            if target == name or target in name:
-                index = d.get('index')
+            name: str = str(d.get('name', '')).lower().strip()
+            if target_lower == name or target_lower in name:
+                index: int = d.get('index')
                 self.logger.info('Selected device: %s, index: %s', name, index)
                 return index
 
-        self.logger.info('Preferred device not found; falling back to last output-capable device')
-        outputs = [d for d in self.device_list if d.get('max_output_channels', 0) > 0]
-        return outputs[-1].get('index') if outputs else None
+        return self._get_outputs('Preferred device not found; falling back to last output-capable device')
 
     def verify_selected_device(self) -> int:
         """Возвращает индекс выбранного устройства или возбуждает RuntimeError, если не найден."""
-        device = self.verify_device()
+        device: int | None = self.verify_device()
         if device is None:
             raise RuntimeError('Preferred device not found — please specify device index manually.')
         return device
@@ -89,12 +95,15 @@ class AudioCapture(DeviceSelection):
     @staticmethod
     def _convert_to_mono(buffer: np.ndarray) -> np.ndarray:
         """Преобразует входной буфер в 1D моно numpy-массив dtype float32."""
-        mono = np.mean(buffer, axis=1) if buffer.ndim > 1 else buffer
-        return mono.astype(np.float32, copy=False)
+        if buffer.ndim > 1:
+            return np.mean(buffer, axis=1, dtype=np.float32)
+        elif buffer.dtype == np.float32:
+            return buffer
+        return buffer.astype(np.float32, copy=False)
 
     def _enqueue_mono_block(self, buffer) -> bool:
         """Помещает моно-блок в очередь; при переполнении удаляет старый элемент и повторяет."""
-        mono_block = self._convert_to_mono(buffer)
+        mono_block: np.ndarray = self._convert_to_mono(buffer)
         try:
             self.audio_queue.put_nowait(mono_block)
             return True
@@ -115,6 +124,8 @@ class AudioCapture(DeviceSelection):
 
     def start_stream(self) -> None:
         """Создаёт и запускает входной аудиопоток."""
+        self.logger.info('Available devices:\n%s', self.device_list)
+
         if getattr(self.stream, "active", False):
             self.logger.info('start_stream called but stream already active selected device: %s', self.selected_device)
             return None
@@ -145,7 +156,7 @@ class AudioCapture(DeviceSelection):
                 self.stream = None
             raise
 
-    def stop_stream(self):
+    def stop_stream(self) -> None:
         """Останавливает и закрывает аудиопоток, гарантирует сброс атрибута stream."""
         if self.stream is None:
             self.logger.info('stop_stream called but no stream present selected device: %s', self.selected_device)
@@ -164,51 +175,70 @@ class AudioCapture(DeviceSelection):
         finally:
             self.stream = None
 
-    def grab_samples(self) -> list[float]:
-        """Собирает все доступные блоки из очереди и возвращает окно фиксированной длины."""
-        blocks = []
+
+class AudioBuilder(AudioCapture):
+
+    @staticmethod
+    def _build_waveform(blocks: list) -> np.ndarray:
+        """Сконкатенировать blocks в единый ndarray и свести в моно по последней оси."""
+        if not blocks:
+            return np.empty(0, dtype=np.float32)
+        waveform: np.ndarray = np.concatenate(blocks, axis=0) if len(blocks) > 1 else blocks[0].copy()
+        if waveform.ndim > 1:
+            waveform = waveform.mean(axis=-1, dtype=np.float32)
+        return waveform
+
+    def _collect_blocks(self) -> list:
+        """Вернуть список всех доступных блоков из очереди (может быть пустым)."""
+        blocks: list = []
         while True:
             try:
                 blocks.append(self.audio_queue.get_nowait())
             except queue.Empty:
                 break
+        return blocks
 
-        if not blocks:
-            self.logger.debug(
-                'No audio blocks in queue; returning zero-filled window of length %s', self.samples_number
-            )
-            return [0.0] * self.samples_number
-
-        arr = np.concatenate(blocks) if len(blocks) > 1 else blocks[0]
-        arr = arr.astype(np.float32, copy=False)
-
-        total = arr.size
+    def _finalize_window(self, waveform: np.ndarray) -> np.ndarray:
+        """Привести к dtype=np.float32 и вернуть окно фиксированной длины (паддинг слева)."""
+        if waveform.dtype != np.float32:
+            waveform = waveform.astype(np.float32, copy=False)
+        total: int = waveform.size
         if total >= self.samples_number:
-            window = arr[-self.samples_number:]
-        else:
-            pad = np.zeros(self.samples_number - total, dtype=np.float32)
-            window = np.concatenate((pad, arr))
+            return waveform[-self.samples_number:]
+        padding: np.ndarray = np.zeros(self.samples_number - total, dtype=np.float32)
+        return np.concatenate((padding, waveform))
 
-        return window.tolist()
+    def grab_samples(self) -> np.ndarray:
+        """Собирает все доступные блоки и возвращает окно фиксированной длины (np.float32)."""
+        blocks: list = self._collect_blocks()
+        if not blocks:
+            return np.zeros(self.samples_number, dtype=np.float32)
+        waveform: np.ndarray = self._build_waveform(blocks)
+        return self._finalize_window(waveform)
 
 
-class Analyzer(AudioCapture):
+class Analyzer(AudioBuilder):
 
     @staticmethod
-    def get_window_vector(samples_number: int, window_type: str = "hann") -> list[float]:
-        """Возвращает вектор коэффициентов оконной функции заданного типа и длины samples_number."""
+    def get_window_vector(samples_number: int, window_type: str = "hann") -> np.ndarray:
+        """Возвращает numpy-массив коэффициентов оконной функции (dtype=np.float32)."""
         if samples_number <= 0:
-            return []
+            return np.empty(0, dtype=np.float32)
         if samples_number == 1:
-            return [1.0]
-        wt = window_type.lower()
+            return np.array([1.0], dtype=np.float32)
+
+        wt: str = window_type.lower()
         if wt in ("hann", "hanning"):
             a, b = 0.5, 0.5
         elif wt == "hamming":
             a, b = 0.54, 0.46
         else:
             raise ValueError(f"Unknown window_type: {window_type}")
-        return [a - b * math.cos(2.0 * math.pi / (samples_number - 1) * n) for n in range(samples_number)]
+
+        factor = np.float32(2.0 * np.pi / (samples_number - 1))
+        n = np.arange(samples_number, dtype=np.float32)
+        w = a - b * np.cos(factor * n)
+        return w
 
     @staticmethod
     def convert_to_percent(db: float, min_db: float = -80.0, gamma: float = 0.4) -> float:
@@ -217,44 +247,56 @@ class Analyzer(AudioCapture):
             return 0.0
         if db >= 0.0:
             return 100.0
-        x = (db - min_db) / (-min_db)
+        x: float = (db - min_db) / (-min_db)
         return 100.0 * (x ** gamma)
 
     def apply_window_vector(self, signal, window_type: str = "hann") -> np.ndarray:
-        """Возвращает новый массив, полученный поэлементным умножением входного сигнала на вектор окна указанного типа."""
-        x = np.asarray(signal, dtype=float)
-        x_size = x.size
-        if x_size == 0:
-            return x.copy()
-        w = np.asarray(self.get_window_vector(x_size, window_type), dtype=float)
+        """Возвращает новый массив, полученный поэлементным умножением входного сигнала на вектор окна."""
+        x: np.ndarray = np.asarray(signal, dtype=np.float32)
+        if x.size == 0:
+            return x
+        w: np.ndarray = self.get_window_vector(x.size, window_type)
         return x * w
 
-    def calculate(self, signal, min_db=-80.0, eps=1e-12) -> list[float]:
-        """Анализирует входной фрейм signal и возвращает список уровней dBFS для полос."""
-        x = np.asarray(signal, dtype=float)
-        x_size = x.size
+    def calculate(self, signal, min_db: float = -80.0, eps: float = 1e-12) -> list[float]:
+        """Анализирует входной фрейм signal (np.ndarray или list) и возвращает список уровней dBFS для полос."""
+        x: np.ndarray = np.asarray(signal, dtype=np.float32)
+        x_size: int = x.size
+
         if x_size == 0 or np.allclose(x, 0.0, atol=eps):
             return [min_db] * len(self.bands)
 
-        spec = np.fft.rfft(self.apply_window_vector(x, window_type="hann"))
-        freqs = np.fft.rfftfreq(x_size, d=1.0 / self.samplerate)
+        if x.ndim > 1:
+            x: np.ndarray = x.mean(axis=1, dtype=np.float32)
+            x_size: int = x.size
+            if x_size == 0 or np.allclose(x, 0.0, atol=eps):
+                return [min_db] * len(self.bands)
 
-        amp = np.abs(spec) / float(x_size)
+        xw: np.ndarray = self.apply_window_vector(x, window_type="hann")
+        amp: np.ndarray = np.abs(np.fft.rfft(xw)) / float(x_size)
+
         if x_size > 1:
             amp[1:-1] *= 2.0
 
-        out = []
+        freqs: np.ndarray = np.fft.rfftfreq(x_size, d=1.0 / float(self.samplerate))
+        power: np.ndarray = amp ** 2
+
+        out: list[float] = []
         for low, high in self.bands:
-            idx = np.where((freqs >= float(low)) & (freqs < float(high)))[0]
-            if idx.size == 0:
+            start = np.searchsorted(freqs, float(low), side='left')
+            end = np.searchsorted(freqs, float(high), side='left')
+            if end <= start:
                 out.append(min_db)
                 continue
-            rms = math.sqrt(float(np.mean(amp[idx] ** 2)))
-            db = 20.0 * math.log10(rms + eps)
+            segment = power[start:end]
+            rms: float = math.sqrt(float(np.mean(segment)))
+            db: float = 20.0 * math.log10(rms + eps)
             out.append(float(max(db, min_db)))
+
         return out
 
     def get_band_levels(self) -> list[float]:
         """Возвращает уровни полос в процентах для текущего сигнала."""
-        signal: list[float] = self.grab_samples()
-        return [self.convert_to_percent(i) for i in self.calculate(signal)]
+        signal: np.ndarray = self.grab_samples()
+        db_levels: list[float] = self.calculate(signal)
+        return [self.convert_to_percent(d) for d in db_levels]

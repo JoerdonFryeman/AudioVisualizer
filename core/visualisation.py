@@ -14,7 +14,10 @@ class Visualisation(Base):
     @staticmethod
     def init_colors() -> None:
         """Инициализирует 6 цветовых пар."""
-        color_map = {1: COLOR_RED, 2: COLOR_YELLOW, 3: COLOR_GREEN, 4: COLOR_CYAN, 5: COLOR_BLUE, 6: COLOR_MAGENTA}
+        color_map: dict = {
+            1: COLOR_RED, 2: COLOR_YELLOW, 3: COLOR_GREEN,
+            4: COLOR_CYAN, 5: COLOR_BLUE, 6: COLOR_MAGENTA
+        }
         [init_pair(i + 1, color_map[i + 1], 1) for i in range(6)]
 
     @staticmethod
