@@ -46,7 +46,7 @@ class DeviceSelection(BandLevels):
         return None
 
     def _get_outputs(self, log: str) -> int | None:
-        """Пытается вернуть последний индекс списка звуковых-устройств"""
+        """Пытается вернуть последний индекс списка звуковых устройств"""
         self.logger.info(log)
         outputs = [d for d in self.device_list if d.get('max_output_channels', 0) > 0]
         if outputs:
@@ -75,7 +75,7 @@ class DeviceSelection(BandLevels):
         return self._get_outputs('Preferred device not found; falling back to last output-capable device')
 
     def verify_selected_device(self) -> int:
-        """Возвращает индекс выбранного устройства или возбуждает RuntimeError, если не найден."""
+        """Возвращает индекс выбранного устройства или кидает RuntimeError, если не найден."""
         device: int | None = self.verify_device()
         if device is None:
             raise RuntimeError('Preferred device not found — please specify device index manually.')
@@ -180,7 +180,7 @@ class AudioBuilder(AudioCapture):
 
     @staticmethod
     def _build_waveform(blocks: list) -> np.ndarray:
-        """Сконкатенировать blocks в единый ndarray и свести в моно по последней оси."""
+        """Конкатенирует блоки в единый ndarray и сводит в моно по последней оси."""
         if not blocks:
             return np.empty(0, dtype=np.float32)
         waveform: np.ndarray = np.concatenate(blocks, axis=0) if len(blocks) > 1 else blocks[0].copy()
@@ -189,7 +189,7 @@ class AudioBuilder(AudioCapture):
         return waveform
 
     def _collect_blocks(self) -> list:
-        """Вернуть список всех доступных блоков из очереди (может быть пустым)."""
+        """Возвращает список всех доступных блоков из очереди (может быть пустым)."""
         blocks: list = []
         while True:
             try:
@@ -199,7 +199,7 @@ class AudioBuilder(AudioCapture):
         return blocks
 
     def _finalize_window(self, waveform: np.ndarray) -> np.ndarray:
-        """Привести к dtype=np.float32 и вернуть окно фиксированной длины (паддинг слева)."""
+        """Приводит к dtype=np.float32 и возвращает окно фиксированной длины (паддинг слева)."""
         if waveform.dtype != np.float32:
             waveform = waveform.astype(np.float32, copy=False)
         total: int = waveform.size
@@ -242,7 +242,7 @@ class Analyzer(AudioBuilder):
 
     @staticmethod
     def convert_to_percent(db: float, min_db: float = -80.0, gamma: float = 0.4) -> float:
-        """Преобразование dBFS в проценты с помощью нелинейного отображения."""
+        """Преобразовывает dBFS в проценты с помощью нелинейного отображения."""
         if db <= min_db:
             return 0.0
         if db >= 0.0:

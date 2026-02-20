@@ -12,7 +12,9 @@ def main(name: str, version: str, year: int) -> None:
         run.logger.info('Задействован обработчик сигналов для корректного завершения: %s', signum)
 
     handler_tuple: tuple[str, str, str] = ('SIGHUP', 'SIGINT', 'SIGTERM')
-    [signal.signal(getattr(signal, name), get_handler) for name in handler_tuple if hasattr(signal, name)]
+    for name in handler_tuple:
+        if hasattr(signal, name):
+            signal.signal(getattr(signal, name), get_handler)
 
     try:
         run.create_directories()
