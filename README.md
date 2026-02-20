@@ -52,9 +52,9 @@ Just press Enter or try any other key.
 
 Some program settings can be specified in the preset.json file.
 
-- You can change the number of your audio device.
-- Each time it is launched, the application logs the current audio devices, so device listings are available in the application log.
-- Change the channels_number, samples_number, maxsize, bands_levels or the bands values.
+- You can change the audio device number.
+- On each launch, the application logs the current audio devices; device listings are therefore available in the application log.
+- Modify the following parameters: channels_number, samples_number, maxsize, bands_levels, and bands.
 
 The default settings can be restored by deleting the preset.json file and restarting the program.
 
