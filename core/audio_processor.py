@@ -15,14 +15,14 @@ class DeviceSelection(BandLevels):
         try:
             self.device_list = sd.query_devices()
         except Exception as e:
-            self.logger.debug('Failed to query audio devices: %s', e)
+            self.logger.debug('Не удалось получить данные об аудиоустройствах: %s', e)
 
     def _get_device_name(self) -> str | None:
         """Возвращает имя системного устройства вывода или None."""
         system: str | None = self.verify_os()
 
         if system is None:
-            self.logger.debug('Unknown platform.system() value: %s', system)
+            self.logger.debug('Неизвестное значение platform.system(): %s', system)
             return None
 
         if system == 'Linux':
@@ -34,13 +34,13 @@ class DeviceSelection(BandLevels):
                     try:
                         sink = pulse.get_sink_by_name(default)
                     except Exception:
-                        self.logger.exception('Failed to set sink; setting sink=None')
+                        self.logger.exception('Не удалось установить sink; установлен sink=None.')
                         sink = None
                     if sink:
                         return sink.description or sink.name
                     return default
             except Exception as e:
-                self.logger.exception('Failed to get default PulseAudio sink: %s', e)
+                self.logger.exception('Не удалось получить стандартный (по умолчанию) выход PulseAudio: %s', e)
                 return None
 
         return None
@@ -61,7 +61,9 @@ class DeviceSelection(BandLevels):
         target: str | None = self._get_device_name()
 
         if not target:
-            return self._get_outputs('No preferred device name obtained; falling back to last output-capable device')
+            return self._get_outputs(
+                'Имя предпочтительного устройства не получено; возвращаюсь к последнему устройству.'
+            )
 
         target_lower: str = str(target).lower().strip()
 
@@ -69,16 +71,16 @@ class DeviceSelection(BandLevels):
             name: str = str(d.get('name', '')).lower().strip()
             if target_lower == name or target_lower in name:
                 index: int = d.get('index')
-                self.logger.info('Selected device: %s, index: %s', name, index)
+                self.logger.info('Выбранное устройство: %s, index: %s', name, index)
                 return index
 
-        return self._get_outputs('Preferred device not found; falling back to last output-capable device')
+        return self._get_outputs('Предпочитаемое устройство не найдено; использую последнее устройство.')
 
     def verify_selected_device(self) -> int:
         """Возвращает индекс выбранного устройства или кидает RuntimeError, если не найден."""
         device: int | None = self.verify_device()
         if device is None:
-            raise RuntimeError('Preferred device not found — please specify device index manually.')
+            raise RuntimeError('Предпочитаемое устройство не найдено — укажи индекс устройства вручную.')
         return device
 
 
@@ -88,7 +90,7 @@ class AudioCapture(DeviceSelection):
     def __init__(self):
         super().__init__()
         self.selected_device = self.verify_selected_device()
-        self.samplerate = int(self.device_list[self.selected_device].get("default_samplerate", 48000))
+        self.samplerate = int(self.device_list[self.selected_device].get('default_samplerate', 48000))
         self.audio_queue = queue.Queue(self.maxsize)
         self.stream = None
 
@@ -124,10 +126,12 @@ class AudioCapture(DeviceSelection):
 
     def start_stream(self) -> None:
         """Создаёт и запускает входной аудиопоток."""
-        self.logger.info('Available devices:\n%s', self.device_list)
+        self.logger.info('Доступные устройства:\n%s', self.device_list)
 
-        if getattr(self.stream, "active", False):
-            self.logger.info('start_stream called but stream already active selected device: %s', self.selected_device)
+        if getattr(self.stream, 'active', False):
+            self.logger.info(
+                'start_stream вызван, но поток уже активен на выбранном устройстве: %s', self.selected_device
+            )
             return None
         try:
             self.stream = sd.InputStream(
@@ -139,18 +143,19 @@ class AudioCapture(DeviceSelection):
             )
             self.stream.start()
             self.logger.info(
-                'Samplerate: %s, channels: %s, blocksize: %s, maxsize: %s',
+                'Частота дискретизации: %s, количество каналов: %s, размер блока: %s, максимальный размер: %s',
                 self.samplerate, self.channels_number, self.samples_number, self.maxsize
             )
-            self.logger.info('Audio stream started.')
+            self.logger.info('Аудиопоток запущен.')
         except Exception:
-            self.logger.exception('Failed to start audio stream selected device: %s', self.selected_device)
+            self.logger.exception('Не удалось запустить аудиопоток на выбранном устройстве: %s', self.selected_device)
             try:
                 if self.stream is not None:
                     self.stream.close()
             except Exception:
                 self.logger.exception(
-                    'Failed to close stream after start failure selected device: %s', self.selected_device
+                    'Не удалось закрыть поток после неудачного запуска на выбранном устройстве: %s',
+                    self.selected_device
                 )
             finally:
                 self.stream = None
@@ -159,19 +164,23 @@ class AudioCapture(DeviceSelection):
     def stop_stream(self) -> None:
         """Останавливает и закрывает аудиопоток, гарантирует сброс атрибута stream."""
         if self.stream is None:
-            self.logger.info('stop_stream called but no stream present selected device: %s', self.selected_device)
+            self.logger.info(
+                'stop_stream вызван, но для выбранного устройства поток не найден: %s', self.selected_device
+            )
             return None
         try:
-            if getattr(self.stream, "active", False):
+            if getattr(self.stream, 'active', False):
                 try:
                     self.stream.stop()
                 except Exception:
-                    self.logger.exception('Error stopping stream selected device: %s', self.selected_device)
+                    self.logger.exception(
+                        'Ошибка при остановке потока на выбранном устройстве: %s', self.selected_device
+                    )
             try:
                 self.stream.close()
             except Exception:
-                self.logger.exception('Error closing stream selected device: %s', self.selected_device)
-            self.logger.info('Audio stream stopped.')
+                self.logger.exception('Ошибка при закрытии потока на выбранном устройстве: %s', self.selected_device)
+            self.logger.info('Аудиопоток остановлен.')
         finally:
             self.stream = None
 
@@ -220,7 +229,7 @@ class AudioBuilder(AudioCapture):
 class Analyzer(AudioBuilder):
 
     @staticmethod
-    def get_window_vector(samples_number: int, window_type: str = "hann") -> np.ndarray:
+    def get_window_vector(samples_number: int, window_type: str = 'hann') -> np.ndarray:
         """Возвращает numpy-массив коэффициентов оконной функции (dtype=np.float32)."""
         if samples_number <= 0:
             return np.empty(0, dtype=np.float32)
@@ -228,12 +237,12 @@ class Analyzer(AudioBuilder):
             return np.array([1.0], dtype=np.float32)
 
         wt: str = window_type.lower()
-        if wt in ("hann", "hanning"):
+        if wt in ('hann', 'hanning'):
             a, b = 0.5, 0.5
-        elif wt == "hamming":
+        elif wt == 'hamming':
             a, b = 0.54, 0.46
         else:
-            raise ValueError(f"Unknown window_type: {window_type}")
+            raise ValueError(f'Неизвестный window_type: {window_type}')
 
         factor = np.float32(2.0 * np.pi / (samples_number - 1))
         n = np.arange(samples_number, dtype=np.float32)
@@ -250,7 +259,7 @@ class Analyzer(AudioBuilder):
         x: float = (db - min_db) / (-min_db)
         return 100.0 * (x ** gamma)
 
-    def apply_window_vector(self, signal, window_type: str = "hann") -> np.ndarray:
+    def apply_window_vector(self, signal, window_type: str = 'hann') -> np.ndarray:
         """Возвращает новый массив, полученный поэлементным умножением входного сигнала на вектор окна."""
         x: np.ndarray = np.asarray(signal, dtype=np.float32)
         if x.size == 0:
@@ -272,7 +281,7 @@ class Analyzer(AudioBuilder):
             if x_size == 0 or np.allclose(x, 0.0, atol=eps):
                 return [min_db] * len(self.bands)
 
-        xw: np.ndarray = self.apply_window_vector(x, window_type="hann")
+        xw: np.ndarray = self.apply_window_vector(x, window_type='hann')
         amp: np.ndarray = np.abs(np.fft.rfft(xw)) / float(x_size)
 
         if x_size > 1:

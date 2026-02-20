@@ -4,7 +4,7 @@ try:
         COLOR_MAGENTA, COLOR_BLUE, COLOR_CYAN, COLOR_GREEN, COLOR_YELLOW, COLOR_RED
     )
 except ModuleNotFoundError:
-    print('\nFor the program to work, you need to install the curses module!\n')
+    print('\nДля работы программы необходимо установить модуль curses!\n')
 
 from .base import Base
 
