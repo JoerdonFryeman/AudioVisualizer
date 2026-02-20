@@ -22,7 +22,7 @@ class RunProgram(Analyzer):
                 Thread(target=self.safe_wrapper, args=(self.create_band, band_levels[i], self.x + counter)).start()
                 counter += len(band_levels) - 1
             stdscr.refresh()
-            sleep(self.fps / 100)
+            sleep(1.0 / max(1, self.fps))
 
     def wait_for_enter(self, stdscr) -> None:
         """Ждёт нажатия клавиши и устанавливает флаг остановки."""

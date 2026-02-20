@@ -160,7 +160,7 @@ class AudioCapture(DeviceSelection):
         """Останавливает и закрывает аудиопоток, гарантирует сброс атрибута stream."""
         if self.stream is None:
             self.logger.info('stop_stream called but no stream present selected device: %s', self.selected_device)
-            return
+            return None
         try:
             if getattr(self.stream, "active", False):
                 try:
