@@ -14,7 +14,7 @@ cd /home/your_directories.../AudioVisualizer_v1.0.1/Linux/ && ./AudioVisualizer_
 
 ## Requirements
 
-- Python: >= 3.14
+- Python: >= 3.11
 - numpy: >= 2.4.2
 - sounddevice: >= 0.5.5
 - pulsectl: >= 24.12.0

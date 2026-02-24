@@ -6,13 +6,13 @@ from logging import config, getLogger
 
 class Base:
     __slots__ = (
-        'logger', 'preset', 'variables', 'device', 'channels_number',
+        'logger', 'config', 'variables', 'device', 'channels_number',
         'samples_number', 'maxsize', 'bands_levels', 'bands'
     )
 
     def __init__(self):
         self.logger = getLogger()
-        self.preset = {
+        self.config = {
             "device": None,
             "channels_number": 2,
             "samples_number": 1024,
@@ -24,7 +24,7 @@ class Base:
                 [2560, 5120], [5120, 10240], [10240, 20000]
             ]
         }
-        self.variables = self.get_config_data('preset')
+        self.variables = self.get_config_data('config')
         try:
             self.device = self.variables['device']
             self.channels_number = self.variables['channels_number']
@@ -93,8 +93,8 @@ class Base:
         try:
             return self.get_json_data('config_files', config_name)
         except FileNotFoundError:
-            self.save_json_data('config_files', config_name, self.preset)
-            return self.preset
+            self.save_json_data('config_files', config_name, self.config)
+            return self.config
         except JSONDecodeError:
             print(f'\nJSONDecodeError! Файл «{config_name}.json» поврежден или не является корректным JSON!')
             return None
