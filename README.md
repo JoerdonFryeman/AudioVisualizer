@@ -5,11 +5,11 @@ A simple console audio visualization.
 <img width="621" height="274" alt="AudioVisualizer" src="https://github.com/user-attachments/assets/49ff0c28-4613-49e1-bd30-38e2365480e8" />
 
 ## Startup
-Download [latest release](https://github.com/JoerdonFryeman/AudioVisualizer/releases/tag/AudioVisualizer_v1.0.1).
+Download [latest release](https://github.com/JoerdonFryeman/AudioVisualizer/releases/tag/AudioVisualizer_v1.0.2).
 
-In Linux, run ```AudioVisualizer_v1.0.1``` in the terminal with the command:
+In Linux, run ```AudioVisualizer_v1.0.2``` in the terminal with the command:
 ```console
-cd /home/your_directories.../AudioVisualizer_v1.0.1/Linux/ && ./AudioVisualizer_v1.0.1
+cd /home/your_directories.../AudioVisualizer_v1.0.2/Linux/ && ./AudioVisualizer_v1.0.2
 ```
 
 ## Requirements
@@ -50,13 +50,13 @@ Just press Enter or try any other key.
 
 ## Settings
 
-Some program settings can be specified in the preset.json file.
+Some program settings can be specified in the config.json file.
 
 - You can change the audio device number.
 - On each launch, the application logs the current audio devices; device listings are therefore available in the application log.
 - Modify the following parameters: channels_number, samples_number, maxsize, bands_levels, and bands.
 
-The default settings can be restored by deleting the preset.json file and restarting the program.
+The default settings can be restored by deleting the config.json file and restarting the program.
 
 ## License
 
