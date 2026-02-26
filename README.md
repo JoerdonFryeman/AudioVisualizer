@@ -53,7 +53,7 @@ Just press Enter or try any other key.
 Some program settings can be specified in the config.json file.
 
 - You can change the audio device number.
-- Each time the app starts, it registers the current audio devices; therefore the device lists are available in the app log.
+- On each launch, the application registers the current audio devices and they are available in the logs.
 - Modify the following parameters: channels_number, samples_number, maxsize, bands_levels, and bands.
 
 The default settings can be restored by deleting the config.json file and restarting the program.
