@@ -39,4 +39,4 @@ def main(name: str, version: str, year: int) -> None:
 
 
 if __name__ == '__main__':
-    main('AudioVisualizer', '1.0.1', 2026)
+    main('AudioVisualizer', '1.0.2', 2026)

@@ -17,7 +17,7 @@ class Base:
             "channels_number": 2,
             "samples_number": 1024,
             "maxsize": 16,
-            "bands_levels": [2, 6, 12, 25, 45, 70],
+            "bands_levels": [2, 6, 25, 45, 70, 80],
             "bands": [
                 [20, 80], [80, 160], [160, 320],
                 [320, 640], [640, 1280], [1280, 2560],
