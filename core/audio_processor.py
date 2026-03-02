@@ -4,10 +4,10 @@ import numpy as np
 import sounddevice as sd
 from pulsectl import Pulse
 
-from .band_levels import BandLevels
+from .visualisation import Visualisation
 
 
-class DeviceSelection(BandLevels):
+class DeviceSelection(Visualisation):
     __slots__ = ('device_list',)
 
     def __init__(self):

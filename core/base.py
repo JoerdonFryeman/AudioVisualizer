@@ -88,7 +88,7 @@ class Base:
         except Exception as e:
             raise Exception(f'Произошла ошибка: {str(e)}')
 
-    def get_config_data(self, config_name: str):
+    def get_config_data(self, config_name: str) -> dict | None:
         """Метод пробует прочитать файл конфигурации и, если это не удаётся, перезаписывает его."""
         try:
             return self.get_json_data('config_files', config_name)
